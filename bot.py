@@ -18,12 +18,14 @@ PRICES = {
 }
 
 async def start(update, context):
-    keyboard = [[InlineKeyboardButton("Выбрать устройство", callback_data="devicelist")], [InlineKeyboardButton("Выбрать проблему", callback_data="select_problem")]]
-    await update.message.reply_text("Привет! Эплсин на связи. Что нужно?", reply_markup=InlineKeyboardMarkup(keyboard))
+    query = update.callback_query
+    if query:
+        await query.edit_message_text("Привет! Эплсин на связи. Что нужно?", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Выбрать устройство", callback_data="devicelist")]]))
+    else:
+        await update.message.reply_text("Привет! Эплсин на связи. Что нужно?", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Выбрать устройство", callback_data="devicelist")]]))
 
 async def device_list(update, context):
-    keyboard = [[InlineKeyboardButton("iPhone", callback_data="device_iphone")], [InlineKeyboardButton("Назад", callback_data="start")]]
-    await update.callback_query.edit_message_text("Выбери устройство:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.callback_query.edit_message_text("Выбери устройство:", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("iPhone", callback_data="modellist")], [InlineKeyboardButton("Назад", callback_data="start")]]))
 
 async def model_list(update, context):
     keyboard = [
@@ -41,17 +43,18 @@ async def show_price(update, context):
     query = update.callback_query
     model_key = query.data.replace("model_", "")
     text = PRICES.get(model_key, "Прайс уточняется.")
-    keyboard = [[InlineKeyboardButton("Замена АКБ", callback_data="book_akb")], [InlineKeyboardButton("Нет моей проблемы", callback_data="contact_master")], [InlineKeyboardButton("Назад", callback_data="modellist")]]
+    keyboard = [[InlineKeyboardButton("Замена АКБ", callback_data="book_akb")], [InlineKeyboardButton("Назад", callback_data="modellist")]]
     await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def book_menu(update, context):
-    keyboard = [[InlineKeyboardButton("Поделиться контактом", callback_data="share_contact")], [InlineKeyboardButton("Ввести вручную", callback_data="manual_number")], [InlineKeyboardButton("Написать мастеру", callback_data="contact_master")], [InlineKeyboardButton("Назад", callback_data="price")]]
-    await update.callback_query.edit_message_text("Как с вами связаться?", reply_markup=InlineKeyboardMarkup(keyboard))
+async def button_handler(update, context):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "start": await start(update, context)
+    elif query.data == "devicelist": await device_list(update, context)
+    elif query.data == "modellist": await model_list(update, context)
+    elif query.data.startswith("model_"): await show_price(update, context)
 
 app = Application.builder().token(os.environ["TOKEN"]).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(device_list, pattern="devicelist"))
-app.add_handler(CallbackQueryHandler(model_list, pattern="device_iphone"))
-app.add_handler(CallbackQueryHandler(show_price, pattern="model_"))
-app.add_handler(CallbackQueryHandler(book_menu, pattern="book_"))
+app.add_handler(CallbackQueryHandler(button_handler))
 app.run_polling()
