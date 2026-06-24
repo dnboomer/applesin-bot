@@ -1,49 +1,38 @@
 import os
-import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
 
-TOKEN = os.getenv('TOKEN')
-ADMIN_ID = "867640"
-
-MODELS = {
-    'ip15': ['15 Pro / Pro Max', '15 / 15 Plus'],
-    'ip14': ['14 Pro / Pro Max', '14 / 14 Plus'],
-    'ip13': ['13 Pro / Pro Max', '13 mini / 13'],
-    'ip12': ['12 Pro / Pro Max', '12 mini / 12'],
-    'ip11': ['11 Pro / Pro Max', '11 / Xr / X / Xs / Xs Max'],
-    'ipse': ['SE 2020 / SE 2022']
+PRICES = {
+    "xr_11": "Цены на ремонт iPhone Xr и 11:\nАккумулятор (стандарт): 3000\nАккумулятор (фоксконн): 4200\nДисплей (подешевле): 2800\nДисплей (получше): 3500\nДисплей (оригинал): 4900\nНижний шлейф: 3000\nКамера: 4500\nFace ID: 4000\nЗаднее стекло: 4000",
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton(f"iPhone {k.replace('ip', '')}", callback_data=k)] for k in MODELS.keys()]
-    await update.message.reply_text("Эплсин. Выберите серию:", reply_markup=InlineKeyboardMarkup(keyboard))
+    keyboard = [[InlineKeyboardButton("Выбрать устройство", callback_data="devicelist")], [InlineKeyboardButton("Выбрать проблему", callback_data="select_problem")]]
+    await update.message.reply_text("Привет! Эплсин на связи. Что нужно?", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def device_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [[InlineKeyboardButton("iPhone", callback_data="device_iphone")], [InlineKeyboardButton("Назад", callback_data="start")]]
+    await update.callback_query.edit_message_text("Выбери устройство:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def model_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [[InlineKeyboardButton("Xr и 11", callback_data="model_xr_11")], [InlineKeyboardButton("Назад", callback_data="devicelist")]]
+    await update.callback_query.edit_message_text("Выбери модель:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def show_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    if query.data in MODELS:
-        keyboard = [[InlineKeyboardButton(model, callback_data=f'order_{model}')] for model in MODELS[query.data]]
-        keyboard.append([InlineKeyboardButton("« Назад", callback_data='back_start')])
-        await query.edit_message_text("Выберите конкретную модель:", reply_markup=InlineKeyboardMarkup(keyboard))
-    elif query.data == 'back_start':
-        keyboard = [[InlineKeyboardButton(f"iPhone {k.replace('ip', '')}", callback_data=k)] for k in MODELS.keys()]
-        await query.edit_message_text("Эплсин. Выберите серию:", reply_markup=InlineKeyboardMarkup(keyboard))
-    elif query.data.startswith('order_'):
-        model = query.data.replace('order_', '')
-        await query.edit_message_text(f"Принято ({model}). Введите ваш номер телефона:")
+    model_key = query.data.replace("model_", "")
+    text = PRICES.get(model_key, "Прайс уточняется.")
+    keyboard = [[InlineKeyboardButton("Замена АКБ", callback_data="book_akb")], [InlineKeyboardButton("Нет моей проблемы", callback_data="contact_master")], [InlineKeyboardButton("Назад", callback_data="modellist")]]
+    await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    if any(c.isdigit() for c in text) and len(text) > 7:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=f"Новая заявка: {text}")
-        await update.message.reply_text("Спасибо, мастер свяжется с вами.")
-    else:
-        await update.message.reply_text("Я вас не понял. Нажмите /start")
+async def book_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [[InlineKeyboardButton("Поделиться контактом", callback_data="share_contact")], [InlineKeyboardButton("Ввести вручную", callback_data="manual_number")], [InlineKeyboardButton("Написать мастеру", callback_data="contact_master")], [InlineKeyboardButton("Назад", callback_data="price")]]
+    await update.callback_query.edit_message_text("Как с вами связаться?", reply_markup=InlineKeyboardMarkup(keyboard))
 
-if __name__ == '__main__':
-    application = ApplicationBuilder().token(TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_phone))
-    application.run_polling()
+app = Application.builder().token(os.environ["TOKEN"]).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(device_list, pattern="devicelist"))
+app.add_handler(CallbackQueryHandler(model_list, pattern="device_iphone"))
+app.add_handler(CallbackQueryHandler(show_price, pattern="model_"))
+app.add_handler(CallbackQueryHandler(book_menu, pattern="book_"))
+app.run_polling()
