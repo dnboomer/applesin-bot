@@ -1,5 +1,5 @@
 import os, re
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 from price import PRICES
 from text import MESSAGES
@@ -7,11 +7,25 @@ from text import MESSAGES
 async def start(update, context):
     context.user_data.clear()
     kb = [[InlineKeyboardButton(cat, callback_data=f"cat_{cat}")] for cat in PRICES.keys()]
+    
+    photo_path = 'start.webp'
+    
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(MESSAGES["start"], reply_markup=InlineKeyboardMarkup(kb))
+        try:
+            with open(photo_path, 'rb') as photo:
+                await update.callback_query.edit_message_media(
+                    media=InputMediaPhoto(media=photo, caption=MESSAGES["start"]),
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
+        except FileNotFoundError:
+            await update.callback_query.edit_message_text(MESSAGES["start"], reply_markup=InlineKeyboardMarkup(kb))
     else:
-        await update.message.reply_text(MESSAGES["start"], reply_markup=InlineKeyboardMarkup(kb))
+        try:
+            with open(photo_path, 'rb') as photo:
+                await update.message.reply_photo(photo=photo, caption=MESSAGES["start"], reply_markup=InlineKeyboardMarkup(kb))
+        except FileNotFoundError:
+            await update.message.reply_text(MESSAGES["start"], reply_markup=InlineKeyboardMarkup(kb))
 
 async def model_list(update, context):
     query = update.callback_query
