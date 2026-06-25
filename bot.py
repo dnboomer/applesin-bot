@@ -4,10 +4,18 @@ from telegram.ext import Application, CallbackQueryHandler, CommandHandler, Mess
 from price import PRICES
 from text import MESSAGES
 
+# --- Вспомогательная функция для обновления сообщения (текст или подпись) ---
+async def update_msg(query, text, kb):
+    try:
+        # Пытаемся обновить подпись, если это сообщение с фото
+        await query.edit_message_caption(caption=text, reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
+    except:
+        # Если это обычное текстовое сообщение (без фото) — меняем текст
+        await query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
+
 async def start(update, context):
     context.user_data.clear()
     kb = [[InlineKeyboardButton(cat, callback_data=f"cat_{cat}")] for cat in PRICES.keys()]
-    
     photo_path = 'start.webp'
     
     if update.callback_query:
@@ -34,7 +42,7 @@ async def model_list(update, context):
     context.user_data['cat'] = cat
     kb = [[InlineKeyboardButton(data['title'], callback_data=f"mod_{cat}_{m}")] for m, data in PRICES[cat].items()]
     kb.append([InlineKeyboardButton("Назад", callback_data="start")])
-    await query.edit_message_text(MESSAGES["choose_model"].format(cat=cat), reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
+    await update_msg(query, MESSAGES["choose_model"].format(cat=cat), kb)
 
 async def service_list(update, context):
     query = update.callback_query
@@ -43,10 +51,9 @@ async def service_list(update, context):
     cat, mod = raw_data.split("_", 1)
     context.user_data['cat'] = cat
     context.user_data['mod'] = mod
-    
     kb = [[InlineKeyboardButton(f"{s['name']} {s['price']}₽", callback_data=f"book_{s['name']}")] for s in PRICES[cat][mod]['services']]
     kb.append([InlineKeyboardButton("Назад", callback_data=f"cat_{cat}")])
-    await query.edit_message_text(MESSAGES["choose_service"].format(title=PRICES[cat][mod]['title']), reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
+    await update_msg(query, MESSAGES["choose_service"].format(title=PRICES[cat][mod]['title']), kb)
 
 async def get_contact(update, context):
     query = update.callback_query
@@ -55,7 +62,7 @@ async def get_contact(update, context):
     cat, mod = context.user_data['cat'], context.user_data['mod']
     path = f"{cat} — {PRICES[cat][mod]['title']} — {service}"
     context.user_data['path'] = path
-    await query.edit_message_text(MESSAGES["get_contact"].format(path=path), parse_mode='HTML')
+    await update_msg(query, MESSAGES["get_contact"].format(path=path), [])
 
 async def final_handler(update, context):
     phone = re.sub(r'\D', '', update.message.text)
