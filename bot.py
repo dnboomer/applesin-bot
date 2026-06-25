@@ -48,10 +48,10 @@ async def final_handler(update, context):
         await update.message.reply_text("Ошибка! Введите корректный номер (10-11 цифр).")
 
 app = Application.builder().token(os.environ["TOKEN"]).build()
+
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(start, pattern="^start$"))
-app.add_handler(CallbackQueryHandler(model_list, pattern="^cat_"))
-app.add_handler(CallbackQueryHandler(service_list, pattern="^mod_"))
-app.add_handler(CallbackQueryHandler(get_contact, pattern="^book_"))
+app.add_handler(CallbackQueryHandler(start, pattern="start")) 
+app.add_handler(CallbackQueryHandler(model_list, pattern="cat_"))
+app.add_handler(CallbackQueryHandler(service_list, pattern="mod_"))
+app.add_handler(CallbackQueryHandler(get_contact, pattern="book_"))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, final_handler))
-app.run_polling()
