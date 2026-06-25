@@ -45,11 +45,7 @@ async def service_list(update, context):
     context.user_data['mod'] = mod
     
     kb = [[InlineKeyboardButton(f"{s['name']} {s['price']}₽", callback_data=f"book_{s['name']}")] for s in PRICES[cat][mod]['services']]
-    
-    # Добавляем "Нет моей проблемы" и "Назад"
-    kb.append([InlineKeyboardButton("Нет моей проблемы", callback_data="book_another_problem")])
     kb.append([InlineKeyboardButton("Назад", callback_data=f"cat_{cat}")])
-    
     await query.edit_message_text(MESSAGES["choose_service"].format(title=PRICES[cat][mod]['title']), reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
 
 async def get_contact(update, context):
@@ -57,12 +53,7 @@ async def get_contact(update, context):
     await query.answer()
     service = query.data.replace("book_", "", 1)
     cat, mod = context.user_data['cat'], context.user_data['mod']
-    
-    if service == "another_problem":
-        path = f"{cat} — {PRICES[cat][mod]['title']} — Другая проблема"
-    else:
-        path = f"{cat} — {PRICES[cat][mod]['title']} — {service}"
-        
+    path = f"{cat} — {PRICES[cat][mod]['title']} — {service}"
     context.user_data['path'] = path
     await query.edit_message_text(MESSAGES["get_contact"].format(path=path), parse_mode='HTML')
 
