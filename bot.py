@@ -56,7 +56,22 @@ app.add_handler(CallbackQueryHandler(service_list, pattern="mod_"))
 app.add_handler(CallbackQueryHandler(get_contact, pattern="book_"))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, final_handler))
 
-
 if __name__ == "__main__":
-    print("Бот запущен и слушает...")
-    app.run_polling()
+    print("--- ЗАПУСК БОТА ---")
+    try:
+        from data import PRICES
+        print(f"База данных успешно загружена. Ключи: {list(PRICES.keys())}")
+        
+        # Добавляем хендлеры
+        app = Application.builder().token(os.environ["TOKEN"]).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CallbackQueryHandler(start, pattern="start"))
+        app.add_handler(CallbackQueryHandler(model_list, pattern="cat_"))
+        app.add_handler(CallbackQueryHandler(service_list, pattern="mod_"))
+        app.add_handler(CallbackQueryHandler(get_contact, pattern="book_"))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, final_handler))
+        
+        print("Хендлеры добавлены. Начинаем опрос...")
+        app.run_polling()
+    except Exception as e:
+        print(f"КРИТИЧЕСКАЯ ОШИБКА ПРИ ЗАПУСКЕ: {e}")
