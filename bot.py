@@ -12,6 +12,7 @@ PRICES = {
 }
 
 async def start(update, context):
+    if update.callback_query: await update.callback_query.answer()
     text = "Привет! Эплсин на связи. Что нужно?"
     kb = [[InlineKeyboardButton("Выбрать устройство", callback_data="devicelist")]]
     if update.callback_query: await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(kb))
@@ -19,28 +20,30 @@ async def start(update, context):
     return SELECTING_SERVICE
 
 async def device_list(update, context):
+    await update.callback_query.answer()
     await update.callback_query.edit_message_text("Выберите устройство:", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("iPhone", callback_data="modellist")], [InlineKeyboardButton("Назад", callback_data="start")]]))
     return SELECTING_SERVICE
 
 async def model_list(update, context):
+    await update.callback_query.answer()
     kb = [[InlineKeyboardButton("15 Pro/Max", callback_data="model_15pro_15promax"), InlineKeyboardButton("15/Plus", callback_data="model_15_15plus")],
           [InlineKeyboardButton("Назад", callback_data="devicelist")]]
     await update.callback_query.edit_message_text("Какая модель?", reply_markup=InlineKeyboardMarkup(kb))
     return SELECTING_SERVICE
 
 async def show_price(update, context):
-    query = update.callback_query
-    model_key = query.data.replace("model_", "")
+    await update.callback_query.answer()
+    model_key = update.callback_query.data.replace("model_", "")
     context.user_data['model_key'] = model_key
     data = PRICES.get(model_key)
     kb = [[InlineKeyboardButton(f"{s['name']} {s['price']}₽", callback_data=f"service_{s['name']}")] for s in data['services']]
     kb.append([InlineKeyboardButton("Назад", callback_data="modellist")])
-    await query.edit_message_text(f"Вы выбрали {data['title']}. Что нужно?", reply_markup=InlineKeyboardMarkup(kb))
+    await update.callback_query.edit_message_text(f"Вы выбрали {data['title']}. Что нужно?", reply_markup=InlineKeyboardMarkup(kb))
     return SELECTING_SERVICE
 
 async def book_menu(update, context):
-    query = update.callback_query
-    service_name = query.data.replace("service_", "")
+    await update.callback_query.answer()
+    service_name = update.callback_query.data.replace("service_", "")
     context.user_data['service'] = service_name
     model_key = context.user_data.get('model_key')
     path = f"iPhone — {PRICES[model_key]['title']} — {service_name}"
@@ -48,11 +51,12 @@ async def book_menu(update, context):
     kb = [[InlineKeyboardButton("Поделиться контактом", request_contact=True)],
           [InlineKeyboardButton("Ввести вручную", callback_data="manual")],
           [InlineKeyboardButton("Назад", callback_data=f"model_{model_key}")]]
-    await query.edit_message_text(f"Вы выбрали: {path}\n\nКак с вами связаться?", reply_markup=InlineKeyboardMarkup(kb))
+    await update.callback_query.edit_message_text(f"Вы выбрали: {path}\n\nКак с вами связаться?", reply_markup=InlineKeyboardMarkup(kb))
     return WAITING_FOR_PHONE
 
 async def receive_phone(update, context):
-    if update.callback_query and update.callback_query.data == "manual":
+    if update.callback_query:
+        await update.callback_query.answer()
         await update.callback_query.edit_message_text("Введите номер цифрами:")
         return WAITING_FOR_PHONE
     phone = update.message.contact.phone_number if update.message.contact else re.sub(r'\D', '', update.message.text)
@@ -63,20 +67,13 @@ async def receive_phone(update, context):
     await update.message.reply_text(f"Спасибо! Заявка:\n{context.user_data['path']}\nНомер: {phone}")
     return ConversationHandler.END
 
-# Создаем список общих команд для навигации, которые работают ВСЕГДА
-nav_handlers = [
-    CallbackQueryHandler(start, pattern="^start$"),
-    CallbackQueryHandler(device_list, pattern="^devicelist$"),
-    CallbackQueryHandler(model_list, pattern="^modellist$"),
-    CallbackQueryHandler(show_price, pattern="^model_")
-]
-
 app = Application.builder().token(os.environ["TOKEN"]).build()
+nav = [CallbackQueryHandler(start, pattern="^start$"), CallbackQueryHandler(device_list, pattern="^devicelist$"), CallbackQueryHandler(model_list, pattern="^modellist$"), CallbackQueryHandler(show_price, pattern="^model_")]
 app.add_handler(ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
-        SELECTING_SERVICE: nav_handlers + [CallbackQueryHandler(book_menu, pattern="^service_")],
-        WAITING_FOR_PHONE: nav_handlers + [CallbackQueryHandler(book_menu, pattern="manual"), MessageHandler(filters.CONTACT | filters.TEXT & ~filters.COMMAND, receive_phone)]
+        SELECTING_SERVICE: nav + [CallbackQueryHandler(book_menu, pattern="^service_")],
+        WAITING_FOR_PHONE: nav + [CallbackQueryHandler(book_menu, pattern="manual"), MessageHandler(filters.CONTACT | filters.TEXT & ~filters.COMMAND, receive_phone)]
     },
     fallbacks=[CommandHandler("start", start)]
 ))
