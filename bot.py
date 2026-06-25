@@ -6,7 +6,11 @@ from data import PRICES
 async def start(update, context):
     context.user_data.clear()
     kb = [[InlineKeyboardButton(cat, callback_data=f"cat_{cat}")] for cat in PRICES.keys()]
-    await update.message.reply_text("Привет! Эплсин на связи. Выберите устройство:", reply_markup=InlineKeyboardMarkup(kb))
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text("Выберите устройство:", reply_markup=InlineKeyboardMarkup(kb))
+    else:
+        await update.message.reply_text("Привет! Эплсин на связи. Выберите устройство:", reply_markup=InlineKeyboardMarkup(kb))
 
 async def model_list(update, context):
     query = update.callback_query
