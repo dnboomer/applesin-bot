@@ -13,7 +13,7 @@ PRICES = {
         "x_xs_xsmax": {"title": "iPhone X, Xs и Xs Max", "services": [{"name": "акб стандарт:", "price": "2500"}, {"name": "акб фокскон:", "price": "3200"}, {"name": "диспл дешев:", "price": "2500-2800"}, {"name": "диспл средн:", "price": "3000-3200"}, {"name": "диспл дорог:", "price": "3500"}, {"name": "нижний шлейф:", "price": "3000"}, {"name": "камера:", "price": "4500"}, {"name": "фэйсайди:", "price": "3500"}, {"name": "заднее стекло:", "price": "3500"}]},
         "se2020_se2022": {"title": "iPhone SE 2020 и 2022", "services": [{"name": "уточняйте у мастера", "price": ""}]}
     },
-№    "iPad": {
-№       "air": {"title": "iPad Air", "services": [{"name": "стекло", "price": "5000"}]}
-№   }
+#    "iPad": {
+#       "air": {"title": "iPad Air", "services": [{"name": "стекло", "price": "5000"}]}
+#   }
 }
