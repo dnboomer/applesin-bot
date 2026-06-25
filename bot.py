@@ -7,7 +7,6 @@ from text import MESSAGES
 async def start(update, context):
     context.user_data.clear()
     kb = [[InlineKeyboardButton(cat, callback_data=f"cat_{cat}")] for cat in PRICES.keys()]
-    
     if update.callback_query:
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(MESSAGES["start"], reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
@@ -30,11 +29,9 @@ async def service_list(update, context):
     cat, mod = raw_data.split("_", 1)
     context.user_data['cat'] = cat
     context.user_data['mod'] = mod
-    
     kb = [[InlineKeyboardButton(f"{s['name']} {s['price']}₽", callback_data=f"book_{s['name']}")] for s in PRICES[cat][mod]['services']]
     kb.append([InlineKeyboardButton("Нет моей проблемы", callback_data="book_another_problem")])
     kb.append([InlineKeyboardButton("Назад", callback_data=f"cat_{cat}")])
-    
     await query.edit_message_text(MESSAGES["choose_service"].format(title=PRICES[cat][mod]['title']), reply_markup=InlineKeyboardMarkup(kb), parse_mode='HTML')
 
 async def get_contact(update, context):
@@ -42,20 +39,25 @@ async def get_contact(update, context):
     await query.answer()
     service = query.data.replace("book_", "", 1)
     cat, mod = context.user_data['cat'], context.user_data['mod']
-    
     if service == "another_problem":
         path = f"{cat} — {PRICES[cat][mod]['title']} — Другая проблема"
     else:
         path = f"{cat} — {PRICES[cat][mod]['title']} — {service}"
-        
     context.user_data['path'] = path
     await query.edit_message_text(MESSAGES["get_contact"].format(path=path), parse_mode='HTML')
 
 async def final_handler(update, context):
     phone = re.sub(r'\D', '', update.message.text)
     if 10 <= len(phone) <= 11:
-        clean_phone = f"+7 ({phone[-10:-7]}) {phone[-7:-4]}-{phone[-4:-2]}-{phone[-2:]}"
-        await update.message.reply_text(MESSAGES["success"].format(path=context.user_data.get('path'), phone=clean_phone), parse_mode='HTML')
+        p = phone[-10:]
+        clean_phone = f"{p[:3]}) {p[3:6]}-{p[6:8]}-{p[8:]}"
+        await update.message.reply_text(
+            MESSAGES["success"].format(
+                path=context.user_data.get('path', 'Услуга'), 
+                phone=clean_phone
+            ), 
+            parse_mode='HTML'
+        )
     else:
         await update.message.reply_text(MESSAGES["error_phone"], parse_mode='HTML')
 
