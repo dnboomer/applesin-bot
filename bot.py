@@ -50,7 +50,7 @@ async def final_handler(update, context):
     phone = re.sub(r'\D', '', update.message.text)
     if 10 <= len(phone) <= 11:
         p = phone[-10:]
-        clean_phone = f"{p[:3]}) {p[3:6]}-{p[6:8]}-{p[8:]}"
+        clean_phone = f"+7 ({p[:3]}) {p[3:6]}-{p[6:8]}-{p[8:]}"
         await update.message.reply_text(
             MESSAGES["success"].format(
                 path=context.user_data.get('path', 'Услуга'), 
